@@ -21,34 +21,51 @@ class EvaluateVisitor : public ExprVisitor {
 
 public:
 	Environment environment;
-	EvaluateVisitor(Environment environment) { // Constructor with parameters
-		environment = environment;
+	EvaluateVisitor(Environment e) { // Constructor with parameters
+		environment = e;
 	}
+	int64_t value;
+
 
 private:
-	std::optional<int64_t> value;
 	virtual void visitImpl(const Literal& literal) {
 		value = literal.value;
 	}
 	virtual void visitImpl(const Symbol& symbol) {
 		std::string name = symbol.name;
-		value = environment.get(name);
+		value = environment.get(name).value();
 	}
 
 	virtual void visitImpl(const Operation& operation) {
 		const OpCode opCode = operation.opCode;
 		operation.rhs.accept(*this);
-		std::optional<int64_t> rhs_value = *value;
-		std::cout << *value;
+		int64_t rhs_value = value;
+		std::cout << value;
 		operation.lhs.accept(*this);
-		std::cout << *value;
-		std::optional<int64_t> lhs_value = *value;
+		std::cout << value;
+		int64_t lhs_value = value;
 
 		std::cout << opCode;
-		// بچه راستیش 
-		// بچه چپش
-		// Return نتیجه
+		if (rhs_value and lhs_value) {
+			switch (opCode) {
+			case OpCode::ADD:
+				value = rhs_value + lhs_value;
+			case OpCode::SUBTRACT:
+				value = lhs_value - rhs_value;
+			case OpCode::MULTIPLY:
+				value = lhs_value * rhs_value;
+			case OpCode::DIVIDE:
+				if (rhs_value == 0) {
+					value = NAN;
+				}else {
+					value = lhs_value / rhs_value;
+				}
 
+			}
+		}
+		else {
+			value = NAN;
+		}
 	}
 };
 
@@ -57,10 +74,9 @@ namespace exprtree {
 
 std::optional<int64_t>
 evaluate(const ExprTree& tree, const Environment& environment) {	
-
 	EvaluateVisitor evalute_visitor(environment);
 	tree.accept(evalute_visitor);
-	return {};
+	return {evalute_visitor.value};
 }
 
 
